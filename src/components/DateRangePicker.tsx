@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { DayPicker } from 'react-day-picker';
 import type { DateRange } from 'react-day-picker';
 import { ja } from 'date-fns/locale';
-import { format } from 'date-fns';
+import { format, differenceInCalendarDays } from 'date-fns';
 
 interface Props {
   onRangeChange: (range: DateRange | undefined) => void;
@@ -53,7 +53,7 @@ export default function DateRangePicker({ onRangeChange }: Props) {
         </div>
         {range?.from && range?.to && (
           <span className="ml-auto text-xs text-indigo-500 font-medium bg-indigo-50 px-2 py-0.5 rounded-full">
-            {Math.ceil((range.to.getTime() - range.from.getTime()) / 86400000)}泊
+            {differenceInCalendarDays(range.to, range.from)}泊
           </span>
         )}
       </button>

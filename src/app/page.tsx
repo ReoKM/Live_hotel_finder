@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import type { DateRange } from 'react-day-picker';
+import { differenceInCalendarDays } from 'date-fns';
 import tokyoDomeData from '@/data/hotels';
 import HotelCard from '@/components/HotelCard';
 import DateRangePicker from '@/components/DateRangePicker';
@@ -21,7 +22,7 @@ export default function Home() {
 
   const nights = useMemo(() => {
     if (!dateRange?.from || !dateRange?.to) return 1;
-    return Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / 86400000);
+    return Math.max(1, differenceInCalendarDays(dateRange.to, dateRange.from));
   }, [dateRange]);
 
   return (

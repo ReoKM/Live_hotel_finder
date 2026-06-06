@@ -16,10 +16,11 @@ const TRANSPORT_LABEL: Record<string, string> = {
 };
 
 function StarRating({ count }: { count: number }) {
+  const validCount = Math.max(0, Math.min(5, Math.floor(count)));
   return (
     <span className="text-yellow-400 text-sm">
-      {'★'.repeat(count)}
-      <span className="text-gray-200">{'★'.repeat(5 - count)}</span>
+      {'★'.repeat(validCount)}
+      <span className="text-gray-200">{'★'.repeat(5 - validCount)}</span>
     </span>
   );
 }
