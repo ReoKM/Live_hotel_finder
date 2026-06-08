@@ -19,10 +19,8 @@ export default function VenueSearch({ onVenueSelect }: Props) {
     if (query.trim()) {
       const found = searchVenuesByQuery(query);
       setResults(found);
-      setIsOpen(found.length > 0);
     } else {
       setResults([]);
-      setIsOpen(false);
     }
   }, [query]);
 
@@ -49,6 +47,7 @@ export default function VenueSearch({ onVenueSelect }: Props) {
       onVenueSelect(null);
     }
     setQuery(value);
+    setIsOpen(value.trim().length > 0);
   };
 
   const handleClear = () => {
@@ -63,6 +62,7 @@ export default function VenueSearch({ onVenueSelect }: Props) {
       <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🏟️</span>
         <input
+          id="venue-search-input"
           type="text"
           value={query}
           onChange={(e) => handleChange(e.target.value)}

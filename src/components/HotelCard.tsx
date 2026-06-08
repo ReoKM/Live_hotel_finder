@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Hotel, HotelPrices } from '@/types';
 
 interface Props {
@@ -46,7 +46,6 @@ function maxPrice(p: HotelPrices): number {
 }
 
 export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) {
-  const router = useRouter();
   const rakutenUrl = `https://travel.rakuten.co.jp/HOTEL/${hotel.rakutenId}/`;
   const jalanUrl = `https://www.jalan.net/yad${hotel.jalanId}/`;
   const agodaUrl = `https://www.agoda.com/hotel/${hotel.agodaId}/`;
@@ -58,11 +57,11 @@ export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) 
   const detailHref = `/venues/${venueId}/hotels/${hotel.id}${dateQuery}`;
 
   return (
-    <div
-      className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200 overflow-hidden cursor-pointer"
-      onClick={() => router.push(detailHref)}
-    >
-      <div className="p-5 sm:p-6">
+    <div className="relative bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200 overflow-hidden">
+      {/* Cover link — enables Ctrl/Cmd+click and right-click "open in new tab" */}
+      <Link href={detailHref} className="absolute inset-0 z-0" aria-label={hotel.name} />
+
+      <div className="p-5 sm:p-6 relative z-10 pointer-events-none">
         {/* Hotel header */}
         <div className="flex flex-wrap justify-between items-start gap-3 mb-4">
           <div className="flex-1 min-w-0">
@@ -98,7 +97,7 @@ export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) 
         </div>
 
         {/* Price comparison - 3 column grid */}
-        <div className="grid grid-cols-3 gap-2 pt-4 border-t border-gray-50">
+        <div className="grid grid-cols-3 gap-2 pt-4 border-t border-gray-50 pointer-events-auto">
           {/* Rakuten */}
           <div
             className={`rounded-xl p-3 border-2 transition-all ${
@@ -129,7 +128,6 @@ export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) 
               href={rakutenUrl}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
               className="mt-2 block w-full text-center bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1.5 rounded-lg transition-colors"
             >
               楽天で予約 →
@@ -166,7 +164,6 @@ export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) 
               href={jalanUrl}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
               className="mt-2 block w-full text-center bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-1.5 rounded-lg transition-colors"
             >
               じゃらんで予約 →
@@ -203,7 +200,6 @@ export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) 
               href={agodaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
               className="mt-2 block w-full text-center bg-[#5392F9] hover:bg-[#3B73E0] text-white text-xs font-bold py-1.5 rounded-lg transition-colors"
             >
               agodaで予約 →

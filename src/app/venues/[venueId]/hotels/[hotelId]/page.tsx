@@ -17,13 +17,14 @@ function formatPrice(price: number): string {
   }).format(price);
 }
 
-function minPrice(p: HotelPrices): number {
+function minPrice(p: HotelPrices): number | null {
   const values = [p.rakuten, p.jalan, p.agoda].filter((x): x is number => x !== null);
-  return values.length > 0 ? Math.min(...values) : 0;
+  return values.length > 0 ? Math.min(...values) : null;
 }
 
 function cheapestOtaName(p: HotelPrices): string {
   const min = minPrice(p);
+  if (min === null) return '料金確認';
   if (p.rakuten === min) return '楽天トラベル';
   if (p.jalan === min) return 'じゃらん';
   return 'agoda';
@@ -31,7 +32,7 @@ function cheapestOtaName(p: HotelPrices): string {
 
 function cheapestOtaUrl(p: HotelPrices, rakutenId: string, jalanId: string, agodaId: string): string {
   const min = minPrice(p);
-  if (p.rakuten === min) return `https://travel.rakuten.co.jp/HOTEL/${rakutenId}/`;
+  if (min === null || p.rakuten === min) return `https://travel.rakuten.co.jp/HOTEL/${rakutenId}/`;
   if (p.jalan === min) return `https://www.jalan.net/yad${jalanId}/`;
   return `https://www.agoda.com/hotel/${agodaId}/`;
 }
@@ -39,9 +40,12 @@ function cheapestOtaUrl(p: HotelPrices, rakutenId: string, jalanId: string, agod
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const data = getVenueById(params.venueId);
   const hotel = data?.hotels.find((h) => h.id === params.hotelId);
+  if (!data || !hotel) {
+    return { title: 'ホテル詳細 | Live Hotel Finder' };
+  }
   return {
-    title: `${hotel?.name ?? ''} | ${data?.venue.name ?? ''}から${hotel?.travelTimeMinutes ?? ''}分 | Live Hotel Finder`,
-    description: `${hotel?.name ?? ''}の楽天トラベル・じゃらん・agoda料金を比較。${data?.venue.name ?? ''}から${hotel?.travelTimeMinutes ?? ''}分。`,
+    title: `${hotel.name} | ${data.venue.name}から${hotel.travelTimeMinutes}分 | Live Hotel Finder`,
+    description: `${hotel.name}の楽天トラベル・じゃらん・agoda料金を比較。${data.venue.name}から${hotel.travelTimeMinutes}分。`,
   };
 }
 
@@ -259,9 +263,13 @@ export default function HotelDetailPage({ params, searchParams }: Props) {
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
           <div>
             <p className="text-xs text-gray-500">最安値</p>
-            <p className="font-extrabold text-gray-900 tabular-nums text-lg leading-tight">
-              {formatPrice(bestPrice)}<span className="text-xs font-normal text-gray-500">/泊</span>
-            </p>
+            {bestPrice !== null ? (
+              <p className="font-extrabold text-gray-900 tabular-nums text-lg leading-tight">
+                {formatPrice(bestPrice)}<span className="text-xs font-normal text-gray-500">/泊</span>
+              </p>
+            ) : (
+              <p className="font-bold text-gray-900 text-base">料金確認</p>
+            )}
             <p className="text-xs text-gray-500">{bestOtaName}</p>
           </div>
           <a

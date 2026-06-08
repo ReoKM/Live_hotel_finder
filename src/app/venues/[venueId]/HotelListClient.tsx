@@ -61,8 +61,22 @@ function HotelListInner({ venueData }: Props) {
     });
 
     result = [...result].sort((a, b) => {
-      if (sort === 'price_asc') return minPrice(a.dummyPrices) - minPrice(b.dummyPrices);
-      if (sort === 'price_desc') return minPrice(b.dummyPrices) - minPrice(a.dummyPrices);
+      if (sort === 'price_asc') {
+        const pA = minPrice(a.dummyPrices);
+        const pB = minPrice(b.dummyPrices);
+        if (pA === 0 && pB === 0) return 0;
+        if (pA === 0) return 1;
+        if (pB === 0) return -1;
+        return pA - pB;
+      }
+      if (sort === 'price_desc') {
+        const pA = minPrice(a.dummyPrices);
+        const pB = minPrice(b.dummyPrices);
+        if (pA === 0 && pB === 0) return 0;
+        if (pA === 0) return 1;
+        if (pB === 0) return -1;
+        return pB - pA;
+      }
       if (sort === 'distance_asc') return a.travelTimeMinutes - b.travelTimeMinutes;
       return 0;
     });

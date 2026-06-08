@@ -67,7 +67,7 @@ export default function Home() {
           <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-2xl text-left">
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                <label htmlFor="venue-search-input" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                   会場名
                 </label>
                 <VenueSearch onVenueSelect={setSelectedVenue} />
