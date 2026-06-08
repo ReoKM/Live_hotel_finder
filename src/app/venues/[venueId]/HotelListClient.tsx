@@ -14,14 +14,16 @@ interface Props {
 
 const DISPLAY_COUNT = 20;
 
-const minPrice = (p: HotelPrices): number =>
-  Math.min(...([p.rakuten, p.jalan, p.agoda].filter((x) => x !== null) as number[]));
+const minPrice = (p: HotelPrices): number => {
+  const values = [p.rakuten, p.jalan, p.agoda].filter((x): x is number => x !== null);
+  return values.length > 0 ? Math.min(...values) : 0;
+};
 
 const FILTER_OPTIONS: { label: string; value: TravelTimeFilterValue }[] = [
   { label: 'すべて', value: null },
   { label: '徒歩10分', value: 10 },
   { label: '徒歩20分', value: 20 },
-  { label: '電車圏内', value: 'train' },
+  { label: '電車のみ', value: 'train' },
 ];
 
 const SORT_OPTIONS: { label: string; value: SortKey }[] = [
@@ -71,8 +73,13 @@ function HotelListInner({ venueData }: Props) {
   const displayed = filtered.slice(0, displayCount);
   const remaining = filtered.length - displayCount;
 
-  const dateQuery =
-    checkin && checkout ? `?checkin=${checkin}&checkout=${checkout}` : '';
+  const dateQuery = (() => {
+    if (!checkin || !checkout) return '';
+    const p = new URLSearchParams();
+    p.set('checkin', checkin);
+    p.set('checkout', checkout);
+    return `?${p.toString()}`;
+  })();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -90,7 +97,7 @@ function HotelListInner({ venueData }: Props) {
           </div>
           <h2 className="text-white text-2xl sm:text-3xl font-extrabold">{venue.name}周辺のホテル</h2>
           <p className="text-violet-300 text-sm mt-1">{venue.address}</p>
-          {nights > 1 && (
+          {checkin && checkout && (
             <span className="inline-block mt-2 text-xs text-violet-100 bg-violet-800/60 px-2 py-0.5 rounded-full">
               {nights}泊
             </span>
@@ -195,7 +202,7 @@ function HotelListInner({ venueData }: Props) {
         <p className="text-xs text-gray-400">
           ※ 表示価格はダミーデータです。実際の価格は各予約サイトでご確認ください。
         </p>
-        <p className="text-xs text-gray-300 mt-2">© 2024 Live Hotel Finder</p>
+        <p className="text-xs text-gray-300 mt-2">© {new Date().getFullYear()} Live Hotel Finder</p>
       </footer>
     </div>
   );

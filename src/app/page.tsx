@@ -145,7 +145,7 @@ export default function Home() {
         <p className="text-xs text-gray-400">
           ※ 表示価格はダミーデータです。実際の価格は各予約サイトでご確認ください。
         </p>
-        <p className="text-xs text-gray-300 mt-2">© 2024 Live Hotel Finder</p>
+        <p className="text-xs text-gray-300 mt-2">© {new Date().getFullYear()} Live Hotel Finder</p>
       </footer>
     </div>
   );

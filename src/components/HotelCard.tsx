@@ -1,4 +1,6 @@
-import Link from 'next/link';
+'use client';
+
+import { useRouter } from 'next/navigation';
 import { Hotel, HotelPrices } from '@/types';
 
 interface Props {
@@ -27,7 +29,8 @@ function formatPrice(price: number): string {
 }
 
 function minPrice(p: HotelPrices): number {
-  return Math.min(...([p.rakuten, p.jalan, p.agoda].filter((x) => x !== null) as number[]));
+  const values = [p.rakuten, p.jalan, p.agoda].filter((x): x is number => x !== null);
+  return values.length > 0 ? Math.min(...values) : 0;
 }
 
 function cheapestOta(p: HotelPrices): 'rakuten' | 'jalan' | 'agoda' {
@@ -38,10 +41,12 @@ function cheapestOta(p: HotelPrices): 'rakuten' | 'jalan' | 'agoda' {
 }
 
 function maxPrice(p: HotelPrices): number {
-  return Math.max(...([p.rakuten, p.jalan, p.agoda].filter((x) => x !== null) as number[]));
+  const values = [p.rakuten, p.jalan, p.agoda].filter((x): x is number => x !== null);
+  return values.length > 0 ? Math.max(...values) : 0;
 }
 
 export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) {
+  const router = useRouter();
   const rakutenUrl = `https://travel.rakuten.co.jp/HOTEL/${hotel.rakutenId}/`;
   const jalanUrl = `https://www.jalan.net/yad${hotel.jalanId}/`;
   const agodaUrl = `https://www.agoda.com/hotel/${hotel.agodaId}/`;
@@ -53,14 +58,17 @@ export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) 
   const detailHref = `/venues/${venueId}/hotels/${hotel.id}${dateQuery}`;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200 overflow-hidden">
-      <Link href={detailHref} className="block p-5 sm:p-6">
+    <div
+      className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200 overflow-hidden cursor-pointer"
+      onClick={() => router.push(detailHref)}
+    >
+      <div className="p-5 sm:p-6">
         {/* Hotel header */}
         <div className="flex flex-wrap justify-between items-start gap-3 mb-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-lg sm:text-xl font-bold text-gray-800">{hotel.name}</h3>
-              {'★'.repeat(hotel.stars) && (
+              {hotel.stars > 0 && (
                 <span className="text-yellow-400 text-sm">{'★'.repeat(hotel.stars)}</span>
               )}
             </div>
@@ -124,7 +132,7 @@ export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) 
               onClick={(e) => e.stopPropagation()}
               className="mt-2 block w-full text-center bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1.5 rounded-lg transition-colors"
             >
-              楽天トラベルで予約する →
+              楽天で予約 →
             </a>
           </div>
 
@@ -161,7 +169,7 @@ export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) 
               onClick={(e) => e.stopPropagation()}
               className="mt-2 block w-full text-center bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-1.5 rounded-lg transition-colors"
             >
-              じゃらんで予約する →
+              じゃらんで予約 →
             </a>
           </div>
 
@@ -198,12 +206,11 @@ export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) 
               onClick={(e) => e.stopPropagation()}
               className="mt-2 block w-full text-center bg-[#5392F9] hover:bg-[#3B73E0] text-white text-xs font-bold py-1.5 rounded-lg transition-colors"
             >
-              agodaで予約する →
+              agodaで予約 →
             </a>
           </div>
         </div>
 
-        {/* Savings badge */}
         {showDiff && (
           <div className="mt-3 flex justify-center">
             <span className="inline-block bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1 rounded-full">
@@ -217,7 +224,7 @@ export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) 
             {nights}泊合計: {formatPrice(minPrice(hotel.dummyPrices) * nights)}〜
           </p>
         )}
-      </Link>
+      </div>
     </div>
   );
 }

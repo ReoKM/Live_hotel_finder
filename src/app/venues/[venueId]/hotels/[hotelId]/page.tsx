@@ -2,6 +2,7 @@ import { getVenueById } from '@/data/venues';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { HotelPrices } from '@/types';
+import Header from '@/components/Header';
 
 interface Props {
   params: { venueId: string; hotelId: string };
@@ -17,7 +18,8 @@ function formatPrice(price: number): string {
 }
 
 function minPrice(p: HotelPrices): number {
-  return Math.min(...([p.rakuten, p.jalan, p.agoda].filter((x) => x !== null) as number[]));
+  const values = [p.rakuten, p.jalan, p.agoda].filter((x): x is number => x !== null);
+  return values.length > 0 ? Math.min(...values) : 0;
 }
 
 function cheapestOtaName(p: HotelPrices): string {
@@ -39,7 +41,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const hotel = data?.hotels.find((h) => h.id === params.hotelId);
   return {
     title: `${hotel?.name ?? ''} | ${data?.venue.name ?? ''}から${hotel?.travelTimeMinutes ?? ''}分 | Live Hotel Finder`,
-    description: `${hotel?.name}の楽天トラベル・じゃらん・agoda料金を比較。${data?.venue.name}から${hotel?.travelTimeMinutes}分。`,
+    description: `${hotel?.name ?? ''}の楽天トラベル・じゃらん・agoda料金を比較。${data?.venue.name ?? ''}から${hotel?.travelTimeMinutes ?? ''}分。`,
   };
 }
 
@@ -57,7 +59,13 @@ export default function HotelDetailPage({ params, searchParams }: Props) {
 
   const { venue } = data;
   const { checkin, checkout } = searchParams;
-  const dateQuery = checkin && checkout ? `?checkin=${checkin}&checkout=${checkout}` : '';
+  const dateQuery = (() => {
+    if (!checkin || !checkout) return '';
+    const p = new URLSearchParams();
+    p.set('checkin', checkin);
+    p.set('checkout', checkout);
+    return `?${p.toString()}`;
+  })();
 
   const rakutenUrl = `https://travel.rakuten.co.jp/HOTEL/${hotel.rakutenId}/`;
   const jalanUrl = `https://www.jalan.net/yad${hotel.jalanId}/`;
@@ -73,18 +81,7 @@ export default function HotelDetailPage({ params, searchParams }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-violet-950 to-indigo-900 text-white shadow-lg">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
-          <Link href="/">
-            <span className="text-2xl">🏟️</span>
-          </Link>
-          <Link href="/" className="flex flex-col">
-            <h1 className="text-lg sm:text-xl font-bold leading-tight">Live Hotel Finder</h1>
-            <p className="text-violet-300 text-xs">ライブ会場周辺のホテル価格比較</p>
-          </Link>
-        </div>
-      </header>
+      <Header />
 
       {/* Content with bottom padding for fixed bar */}
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 pb-28">
