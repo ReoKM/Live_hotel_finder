@@ -1,17 +1,17 @@
 'use client';
 
-import { TravelTimeFilter as TravelTimeFilterType } from '@/types';
+import { TravelTimeFilterValue } from '@/types';
 
 interface Props {
-  value: TravelTimeFilterType;
-  onChange: (value: TravelTimeFilterType) => void;
+  value: TravelTimeFilterValue;
+  onChange: (value: TravelTimeFilterValue) => void;
 }
 
-const options: { label: string; value: TravelTimeFilterType }[] = [
+const options: { label: string; value: TravelTimeFilterValue }[] = [
   { label: 'すべて', value: null },
-  { label: '10分以内', value: 10 },
-  { label: '20分以内', value: 20 },
-  { label: '30分以内', value: 30 },
+  { label: '徒歩10分', value: 10 },
+  { label: '徒歩20分', value: 20 },
+  { label: '電車圏内', value: 'train' },
 ];
 
 export default function TravelTimeFilter({ value, onChange }: Props) {
@@ -21,10 +21,10 @@ export default function TravelTimeFilter({ value, onChange }: Props) {
         <button
           key={String(option.value)}
           onClick={() => onChange(option.value)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-150 ${
             value === option.value
-              ? 'bg-indigo-600 text-white shadow-md scale-105'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:scale-105'
+              ? 'bg-violet-600 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
           {option.label}

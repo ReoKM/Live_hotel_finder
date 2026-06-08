@@ -65,7 +65,7 @@ export default function DateRangePicker({ onRangeChange }: Props) {
             selected={range}
             onSelect={handleSelect}
             locale={ja}
-            numberOfMonths={2}
+            numberOfMonths={1}
             fromDate={today}
           />
           {range?.from && !range?.to && (

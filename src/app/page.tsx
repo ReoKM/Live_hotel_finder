@@ -1,127 +1,151 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { DateRange } from 'react-day-picker';
-import { differenceInCalendarDays } from 'date-fns';
-import tokyoDomeData from '@/data/hotels';
-import HotelCard from '@/components/HotelCard';
+import { format } from 'date-fns';
+import Header from '@/components/Header';
+import VenueSearch from '@/components/VenueSearch';
 import DateRangePicker from '@/components/DateRangePicker';
-import TravelTimeFilter from '@/components/TravelTimeFilter';
-import type { TravelTimeFilter as TravelTimeFilterType } from '@/types';
+import { VenueData } from '@/types';
+import { allVenues } from '@/data/venues';
+
+const POPULAR_VENUE_IDS = [
+  'tokyo-dome',
+  'yokohama-arena',
+  'saitama-super-arena',
+  'osaka-jo-hall',
+  'paypay-dome',
+];
 
 export default function Home() {
+  const router = useRouter();
+  const [selectedVenue, setSelectedVenue] = useState<VenueData | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [travelTimeFilter, setTravelTimeFilter] = useState<TravelTimeFilterType>(null);
 
-  const { venue, hotels } = tokyoDomeData;
+  const popularVenues = POPULAR_VENUE_IDS.map((id) =>
+    allVenues.find((v) => v.venue.id === id)
+  ).filter(Boolean) as VenueData[];
 
-  const filteredHotels = useMemo(() => {
-    if (!travelTimeFilter) return hotels;
-    return hotels.filter((h) => h.travelTimeMinutes <= travelTimeFilter);
-  }, [hotels, travelTimeFilter]);
+  const handleSearch = () => {
+    if (!selectedVenue) return;
+    const params = new URLSearchParams();
+    if (dateRange?.from) params.set('checkin', format(dateRange.from, 'yyyy-MM-dd'));
+    if (dateRange?.to) params.set('checkout', format(dateRange.to, 'yyyy-MM-dd'));
+    const query = params.toString();
+    router.push(`/venues/${selectedVenue.venue.id}${query ? `?${query}` : ''}`);
+  };
 
-  const nights = useMemo(() => {
-    if (!dateRange?.from || !dateRange?.to) return 1;
-    return Math.max(1, differenceInCalendarDays(dateRange.to, dateRange.from));
-  }, [dateRange]);
+  const handleQuickSelect = (venueData: VenueData) => {
+    const params = new URLSearchParams();
+    if (dateRange?.from) params.set('checkin', format(dateRange.from, 'yyyy-MM-dd'));
+    if (dateRange?.to) params.set('checkout', format(dateRange.to, 'yyyy-MM-dd'));
+    const query = params.toString();
+    router.push(`/venues/${venueData.venue.id}${query ? `?${query}` : ''}`);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-indigo-900 text-white shadow-lg">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
-          <span className="text-2xl">🏟️</span>
-          <div>
-            <h1 className="text-lg sm:text-xl font-bold leading-tight">Live Hotel Finder</h1>
-            <p className="text-indigo-300 text-xs">ライブ会場周辺のホテル価格比較</p>
-          </div>
-        </div>
-      </header>
+      <Header />
 
-      {/* Search hero */}
-      <div className="bg-gradient-to-br from-indigo-800 to-indigo-900 py-8 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto">
-          {/* Venue label */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-5">
-            <span className="bg-indigo-500/70 border border-indigo-400 text-indigo-100 text-xs px-3 py-1 rounded-full font-medium uppercase tracking-wider">
-              会場
-            </span>
-            <h2 className="text-white text-xl sm:text-2xl font-extrabold">{venue.name}</h2>
-            <span className="text-indigo-300 text-sm hidden sm:block">{venue.address}</span>
+      {/* Hero */}
+      <div className="bg-gradient-to-br from-violet-950 to-indigo-900 py-12 px-4 sm:px-6">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="inline-block bg-fuchsia-500/80 text-white text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
+            楽天 · じゃらん · agoda 一括比較
           </div>
-          <p className="text-indigo-300 text-sm sm:hidden mb-4">{venue.address}</p>
+          <h2 className="text-white text-3xl sm:text-4xl font-extrabold mb-3 leading-tight">
+            ライブ・フェス遠征の
+            <br />
+            ホテルを最安値で予約
+          </h2>
+          <p className="text-violet-300 text-sm sm:text-base mb-8">
+            会場を選ぶだけで、近くのホテルを3サイトで比較。面倒な検索は不要。
+          </p>
 
-          {/* Filters card */}
-          <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-2xl">
-            <div className="flex flex-col sm:flex-row gap-5 sm:gap-8 sm:items-end">
+          {/* Search card */}
+          <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-2xl text-left">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  会場名
+                </label>
+                <VenueSearch onVenueSelect={setSelectedVenue} />
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                   宿泊日
                 </label>
                 <DateRangePicker onRangeChange={setDateRange} />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                  移動時間
-                </label>
-                <TravelTimeFilter value={travelTimeFilter} onChange={setTravelTimeFilter} />
-              </div>
+
+              <button
+                onClick={handleSearch}
+                disabled={!selectedVenue}
+                className="w-full bg-violet-600 hover:bg-violet-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-colors text-base"
+              >
+                ホテルを検索 →
+              </button>
+
+              {!selectedVenue && (
+                <p className="text-xs text-gray-400 text-center">
+                  まず会場名を入力してください
+                </p>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Results */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-7">
-        {/* Result count bar */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <span className="text-indigo-600 font-bold text-lg">{filteredHotels.length}</span>
-            <span className="text-gray-600 text-sm font-medium">件のホテルが見つかりました</span>
-            {nights > 1 && (
-              <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                {nights}泊
-              </span>
-            )}
-          </div>
-          {travelTimeFilter && (
-            <span className="text-xs text-indigo-500 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
-              移動 {travelTimeFilter}分以内で絞り込み中
-            </span>
-          )}
+      {/* Popular venues */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-10">
+        <h3 className="text-lg font-bold text-gray-800 mb-4">人気の会場から探す</h3>
+        <div className="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 snap-x">
+          {popularVenues.map((venueData) => (
+            <button
+              key={venueData.venue.id}
+              onClick={() => handleQuickSelect(venueData)}
+              className="flex-none snap-start bg-white border border-gray-100 hover:border-violet-300 hover:shadow-md rounded-xl px-5 py-4 text-left transition-all min-w-[160px] group"
+            >
+              <span className="text-2xl block mb-2">🏟️</span>
+              <p className="font-bold text-gray-800 text-sm leading-tight group-hover:text-violet-700 transition-colors">
+                {venueData.venue.name}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">{venueData.venue.prefecture}</p>
+            </button>
+          ))}
         </div>
 
-        {/* Hotel list */}
-        <div className="space-y-4">
-          {filteredHotels.length > 0 ? (
-            filteredHotels.map((hotel) => (
-              <HotelCard key={hotel.id} hotel={hotel} nights={nights} />
-            ))
-          ) : (
-            <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
-              <p className="text-4xl mb-3">😢</p>
-              <p className="text-lg font-semibold text-gray-600">
-                条件に合うホテルが見つかりませんでした
-              </p>
-              <p className="text-sm text-gray-400 mt-1">
-                移動時間のフィルターを緩めてみてください
-              </p>
+        {/* All venues list */}
+        <div className="mt-10">
+          <h3 className="text-lg font-bold text-gray-800 mb-4">すべての対応会場</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {allVenues.map((venueData) => (
               <button
-                onClick={() => setTravelTimeFilter(null)}
-                className="mt-4 text-sm text-indigo-500 hover:text-indigo-700 underline"
+                key={venueData.venue.id}
+                onClick={() => handleQuickSelect(venueData)}
+                className="bg-white border border-gray-100 hover:border-violet-300 hover:shadow-sm rounded-xl px-4 py-3 text-left transition-all group"
               >
-                フィルターをリセット
+                <p className="font-semibold text-gray-800 text-sm leading-tight group-hover:text-violet-700 transition-colors">
+                  {venueData.venue.name}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">{venueData.venue.prefecture}</p>
               </button>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
       </main>
 
       {/* Footer */}
       <footer className="border-t bg-white mt-8 py-6 px-4 text-center">
-        <p className="text-xs text-gray-400">
-          © 2024 Live Hotel Finder ・ 表示価格はダミーデータです。実際の価格は各予約サイトでご確認ください。
+        <p className="text-xs text-gray-400 mb-1">
+          ※ 当サイトは楽天トラベル・じゃらん・agodaのアフィリエイトプログラムに参加しています。
         </p>
+        <p className="text-xs text-gray-400">
+          ※ 表示価格はダミーデータです。実際の価格は各予約サイトでご確認ください。
+        </p>
+        <p className="text-xs text-gray-300 mt-2">© 2024 Live Hotel Finder</p>
       </footer>
     </div>
   );
