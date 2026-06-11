@@ -13,11 +13,15 @@ interface Props {
 const TRANSPORT_ICON: Record<string, string> = {
   walk: '🚶',
   train: '🚃',
+  bus: '🚌',
+  taxi: '🚕',
 };
 
 const TRANSPORT_LABEL: Record<string, string> = {
   walk: '徒歩',
   train: '電車',
+  bus: 'バス',
+  taxi: 'タクシー',
 };
 
 function formatPrice(price: number): string {
@@ -76,6 +80,9 @@ export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) 
               <span className="text-gray-400 text-xs">{hotel.reviewCount.toLocaleString()}件</span>
             </div>
             <p className="text-sm text-gray-500 mt-1">{hotel.address}</p>
+            <p className="text-xs text-gray-400 mt-1">
+              🚉 {hotel.nearestStation} ・ 🛏️ {hotel.bedType} ・ {hotel.roomSizeSqm}㎡〜
+            </p>
             <div className="flex flex-wrap gap-1.5 mt-2">
               {hotel.amenities.map((amenity) => (
                 <span
@@ -88,11 +95,19 @@ export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) 
             </div>
           </div>
 
-          {/* Travel time badge */}
-          <div className="flex items-center gap-1.5 bg-violet-50 text-violet-700 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap border border-violet-200 shrink-0">
-            <span className="text-base">{TRANSPORT_ICON[hotel.transport]}</span>
-            <span>{TRANSPORT_LABEL[hotel.transport]}</span>
-            <span className="font-bold text-violet-800">{hotel.travelTimeMinutes}分</span>
+          {/* Travel options */}
+          <div className="flex flex-col gap-1.5 shrink-0">
+            {hotel.transportOptions.map((opt) => (
+              <div
+                key={opt.method}
+                className="flex items-center gap-1.5 bg-violet-50 text-violet-700 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap border border-violet-200"
+              >
+                <span className="text-base">{TRANSPORT_ICON[opt.method]}</span>
+                <span>{TRANSPORT_LABEL[opt.method]}</span>
+                <span className="font-bold text-violet-800">{opt.minutes}分</span>
+                <span className="text-xs text-violet-400">{opt.cost === 0 ? '無料' : formatPrice(opt.cost)}</span>
+              </div>
+            ))}
           </div>
         </div>
 

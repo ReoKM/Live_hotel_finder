@@ -1,13 +1,19 @@
 import { getVenueById } from '@/data/venues';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { HotelPrices } from '@/types';
+import { differenceInCalendarDays, parseISO } from 'date-fns';
 import Header from '@/components/Header';
+import HotelDetailClient from './HotelDetailClient';
 
 interface Props {
   params: { venueId: string; hotelId: string };
   searchParams: { checkin?: string; checkout?: string };
 }
+
+const TRANSPORT_ICON: Record<string, string> = { walk: '🚶', train: '🚃' };
+const TRANSPORT_LABEL: Record<string, string> = { walk: '徒歩', train: '電車' };
+const TRANSPORT_OPTION_ICON: Record<string, string> = { walk: '🚶', train: '🚃', bus: '🚌', taxi: '🚕' };
+const TRANSPORT_OPTION_LABEL: Record<string, string> = { walk: '徒歩', train: '電車', bus: 'バス', taxi: 'タクシー' };
 
 function formatPrice(price: number): string {
   return new Intl.NumberFormat('ja-JP', {
@@ -15,26 +21,6 @@ function formatPrice(price: number): string {
     currency: 'JPY',
     minimumFractionDigits: 0,
   }).format(price);
-}
-
-function minPrice(p: HotelPrices): number | null {
-  const values = [p.rakuten, p.jalan, p.agoda].filter((x): x is number => x !== null);
-  return values.length > 0 ? Math.min(...values) : null;
-}
-
-function cheapestOtaName(p: HotelPrices): string {
-  const min = minPrice(p);
-  if (min === null) return '料金確認';
-  if (p.rakuten === min) return '楽天トラベル';
-  if (p.jalan === min) return 'じゃらん';
-  return 'agoda';
-}
-
-function cheapestOtaUrl(p: HotelPrices, rakutenId: string, jalanId: string, agodaId: string): string {
-  const min = minPrice(p);
-  if (min === null || p.rakuten === min) return `https://travel.rakuten.co.jp/HOTEL/${rakutenId}/`;
-  if (p.jalan === min) return `https://www.jalan.net/yad${jalanId}/`;
-  return `https://www.agoda.com/hotel/${agodaId}/`;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -71,17 +57,16 @@ export default function HotelDetailPage({ params, searchParams }: Props) {
     return `?${p.toString()}`;
   })();
 
-  const rakutenUrl = `https://travel.rakuten.co.jp/HOTEL/${hotel.rakutenId}/`;
-  const jalanUrl = `https://www.jalan.net/yad${hotel.jalanId}/`;
-  const agodaUrl = `https://www.agoda.com/hotel/${hotel.agodaId}/`;
+  const nights = (() => {
+    if (!checkin || !checkout) return 1;
+    try {
+      return Math.max(1, differenceInCalendarDays(parseISO(checkout), parseISO(checkin)));
+    } catch {
+      return 1;
+    }
+  })();
+
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotel.address)}`;
-
-  const bestOtaName = cheapestOtaName(hotel.dummyPrices);
-  const bestOtaUrl = cheapestOtaUrl(hotel.dummyPrices, hotel.rakutenId, hotel.jalanId, hotel.agodaId);
-  const bestPrice = minPrice(hotel.dummyPrices);
-
-  const TRANSPORT_ICON: Record<string, string> = { walk: '🚶', train: '🚃' };
-  const TRANSPORT_LABEL: Record<string, string> = { walk: '徒歩', train: '電車' };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -120,6 +105,7 @@ export default function HotelDetailPage({ params, searchParams }: Props) {
 
           {/* Address */}
           <p className="text-sm text-gray-600 mt-3">{hotel.address}</p>
+          <p className="text-sm text-gray-500 mt-1">🚉 最寄り駅: {hotel.nearestStation}</p>
 
           {/* Google Maps link */}
           <a
@@ -145,143 +131,64 @@ export default function HotelDetailPage({ params, searchParams }: Props) {
           </div>
         </div>
 
-        {/* Price comparison */}
-        <div className="mb-4">
-          <h3 className="text-lg font-bold text-gray-800 mb-3">料金比較</h3>
-          <div className="space-y-3">
-            {/* Rakuten */}
-            <div className={`bg-white rounded-xl shadow-sm border-2 p-5 ${
-              cheapestOtaName(hotel.dummyPrices) === '楽天トラベル' ? 'border-amber-400' : 'border-red-100'
-            }`}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-600 rounded-full" />
-                  <span className="font-bold text-red-700">楽天トラベル</span>
-                </div>
-                {cheapestOtaName(hotel.dummyPrices) === '楽天トラベル' && (
-                  <span className="bg-amber-400 text-amber-900 text-xs font-bold px-2 py-0.5 rounded-full">
-                    最安値
-                  </span>
-                )}
-              </div>
-              {hotel.dummyPrices.rakuten !== null ? (
-                <p className="text-3xl font-extrabold text-gray-900 tabular-nums">
-                  {formatPrice(hotel.dummyPrices.rakuten)}<span className="text-base font-normal text-gray-500">/泊</span>
-                </p>
-              ) : (
-                <p className="text-gray-400">料金を確認</p>
-              )}
-              <a
-                href={rakutenUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 block w-full text-center bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-colors"
-              >
-                楽天トラベルで予約する →
-              </a>
+        {/* Room info */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+          <h3 className="text-lg font-bold text-gray-800 mb-3">客室情報</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-gray-400 text-xs">部屋の広さ</p>
+              <p className="font-bold text-gray-800">{hotel.roomSizeSqm}㎡〜</p>
             </div>
-
-            {/* Jalan */}
-            <div className={`bg-white rounded-xl shadow-sm border-2 p-5 ${
-              cheapestOtaName(hotel.dummyPrices) === 'じゃらん' ? 'border-amber-400' : 'border-orange-100'
-            }`}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-orange-500 rounded-full" />
-                  <span className="font-bold text-orange-700">じゃらん</span>
-                </div>
-                {cheapestOtaName(hotel.dummyPrices) === 'じゃらん' && (
-                  <span className="bg-amber-400 text-amber-900 text-xs font-bold px-2 py-0.5 rounded-full">
-                    最安値
-                  </span>
-                )}
-              </div>
-              {hotel.dummyPrices.jalan !== null ? (
-                <p className="text-3xl font-extrabold text-gray-900 tabular-nums">
-                  {formatPrice(hotel.dummyPrices.jalan)}<span className="text-base font-normal text-gray-500">/泊</span>
-                </p>
-              ) : (
-                <p className="text-gray-400">料金を確認</p>
-              )}
-              <a
-                href={jalanUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 block w-full text-center bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-colors"
-              >
-                じゃらんで予約する →
-              </a>
+            <div>
+              <p className="text-gray-400 text-xs">ベッドタイプ</p>
+              <p className="font-bold text-gray-800">{hotel.bedType}</p>
             </div>
-
-            {/* Agoda */}
-            <div className={`rounded-xl shadow-sm border-2 p-5 bg-[#EBF1FF] ${
-              cheapestOtaName(hotel.dummyPrices) === 'agoda' ? 'border-amber-400' : 'border-[#c5d8ff]'
-            }`}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-[#5392F9] rounded-full" />
-                  <span className="font-bold text-[#5392F9]">agoda</span>
-                </div>
-                {cheapestOtaName(hotel.dummyPrices) === 'agoda' && (
-                  <span className="bg-amber-400 text-amber-900 text-xs font-bold px-2 py-0.5 rounded-full">
-                    最安値
-                  </span>
-                )}
-              </div>
-              {hotel.dummyPrices.agoda !== null ? (
-                <p className="text-3xl font-extrabold text-gray-900 tabular-nums">
-                  {formatPrice(hotel.dummyPrices.agoda)}<span className="text-base font-normal text-gray-500">/泊</span>
-                </p>
-              ) : (
-                <p className="text-gray-400">料金を確認</p>
-              )}
-              <a
-                href={agodaUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 block w-full text-center bg-[#5392F9] hover:bg-[#3B73E0] text-white font-bold py-3 rounded-xl transition-colors"
-              >
-                agodaで予約する →
-              </a>
+            <div>
+              <p className="text-gray-400 text-xs">チェックイン</p>
+              <p className="font-bold text-gray-800">{hotel.checkInTime}〜</p>
+            </div>
+            <div>
+              <p className="text-gray-400 text-xs">チェックアウト</p>
+              <p className="font-bold text-gray-800">〜{hotel.checkOutTime}</p>
             </div>
           </div>
         </div>
 
+        {/* Access / transport options */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+          <h3 className="text-lg font-bold text-gray-800 mb-3">{venue.name}までのアクセス</h3>
+          <div className="space-y-2">
+            {hotel.transportOptions.map((opt) => (
+              <div
+                key={opt.method}
+                className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{TRANSPORT_OPTION_ICON[opt.method]}</span>
+                  <span className="text-sm font-medium text-gray-700">{TRANSPORT_OPTION_LABEL[opt.method]}</span>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-gray-800 tabular-nums">{opt.minutes}分</p>
+                  <p className="text-xs text-gray-400 tabular-nums">{opt.cost === 0 ? '無料' : formatPrice(opt.cost)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Price comparison + plan selector + bottom CTA (interactive) */}
+        <HotelDetailClient hotel={hotel} nights={nights} />
+
         {/* Affiliate disclosure */}
-        <div className="bg-gray-100 rounded-xl p-4 text-xs text-gray-500 leading-relaxed">
+        <div className="bg-gray-100 rounded-xl p-4 text-xs text-gray-500 leading-relaxed mt-4">
           <p className="font-semibold mb-1">【アフィリエイト開示・価格免責】</p>
           <p>
             当ページには楽天トラベル・じゃらん・agodaへのアフィリエイトリンクが含まれています。
             リンクから予約された場合、当サイトに手数料が支払われる場合があります。
-            表示価格はダミーデータです。実際の料金・空室状況は各予約サイトにてご確認ください。
+            表示価格はダミーデータです。実際の料金・空室状況・宿泊プランは各予約サイトにてご確認ください。
           </p>
         </div>
       </main>
-
-      {/* Fixed bottom CTA bar */}
-      <div className="fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur-sm border-t shadow-2xl py-3 px-4">
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
-          <div>
-            <p className="text-xs text-gray-500">最安値</p>
-            {bestPrice !== null ? (
-              <p className="font-extrabold text-gray-900 tabular-nums text-lg leading-tight">
-                {formatPrice(bestPrice)}<span className="text-xs font-normal text-gray-500">/泊</span>
-              </p>
-            ) : (
-              <p className="font-bold text-gray-900 text-base">料金確認</p>
-            )}
-            <p className="text-xs text-gray-500">{bestOtaName}</p>
-          </div>
-          <a
-            href={bestOtaUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 max-w-xs text-center bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 px-6 rounded-xl transition-colors"
-          >
-            今すぐ予約
-          </a>
-        </div>
-      </div>
     </div>
   );
 }
