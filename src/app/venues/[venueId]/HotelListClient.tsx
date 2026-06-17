@@ -162,7 +162,7 @@ function HotelListInner({ venueData }: Props) {
 
       {/* Results */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <p className="text-sm text-gray-600">
             <span className="font-bold text-violet-600">{filtered.length}</span>件のホテルが見つかりました
           </p>
@@ -170,7 +170,7 @@ function HotelListInner({ venueData }: Props) {
 
         {displayed.length > 0 ? (
           <>
-            <div className="space-y-4">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
               {displayed.map((hotel) => (
                 <HotelCard
                   key={hotel.id}

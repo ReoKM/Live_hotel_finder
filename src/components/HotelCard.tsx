@@ -17,13 +17,6 @@ const TRANSPORT_ICON: Record<string, string> = {
   taxi: '🚕',
 };
 
-const TRANSPORT_LABEL: Record<string, string> = {
-  walk: '徒歩',
-  train: '電車',
-  bus: 'バス',
-  taxi: 'タクシー',
-};
-
 function formatPrice(price: number): string {
   return new Intl.NumberFormat('ja-JP', {
     style: 'currency',
@@ -44,198 +37,79 @@ function cheapestOta(p: HotelPrices): 'rakuten' | 'jalan' | 'agoda' {
   return 'agoda';
 }
 
-function maxPrice(p: HotelPrices): number {
-  const values = [p.rakuten, p.jalan, p.agoda].filter((x): x is number => x !== null);
-  return values.length > 0 ? Math.max(...values) : 0;
-}
+const OTA_CONFIG = {
+  rakuten: { label: '楽天', cheapStyle: 'bg-amber-400 text-amber-900', plainStyle: 'bg-red-50 text-red-700 border border-red-100' },
+  jalan: { label: 'じゃらん', cheapStyle: 'bg-amber-400 text-amber-900', plainStyle: 'bg-orange-50 text-orange-700 border border-orange-100' },
+  agoda: { label: 'agoda', cheapStyle: 'bg-amber-400 text-amber-900', plainStyle: 'bg-[#EBF1FF] text-[#5392F9] border border-[#c5d8ff]' },
+} as const;
 
 export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) {
-  const rakutenUrl = `https://travel.rakuten.co.jp/HOTEL/${hotel.rakutenId}/`;
-  const jalanUrl = `https://www.jalan.net/yad${hotel.jalanId}/`;
-  const agodaUrl = `https://www.agoda.com/hotel/${hotel.agodaId}/`;
+  const urls = {
+    rakuten: `https://travel.rakuten.co.jp/HOTEL/${hotel.rakutenId}/`,
+    jalan: `https://www.jalan.net/yad${hotel.jalanId}/`,
+    agoda: `https://www.agoda.com/hotel/${hotel.agodaId}/`,
+  } as const;
 
   const cheapest = cheapestOta(hotel.dummyPrices);
-  const diff = maxPrice(hotel.dummyPrices) - minPrice(hotel.dummyPrices);
-  const showDiff = diff >= 500;
-
   const detailHref = `/venues/${venueId}/hotels/${hotel.id}${dateQuery}`;
 
   return (
-    <div className="relative bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200 overflow-hidden">
+    <div className="relative border-b border-gray-100 px-3 py-2.5 hover:bg-violet-50/40 transition-colors">
       {/* Cover link — enables Ctrl/Cmd+click and right-click "open in new tab" */}
       <Link href={detailHref} className="absolute inset-0 z-0" aria-label={hotel.name} />
 
-      <div className="p-5 sm:p-6 relative z-10 pointer-events-none">
-        {/* Hotel header */}
-        <div className="flex flex-wrap justify-between items-start gap-3 mb-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-lg sm:text-xl font-bold text-gray-800">{hotel.name}</h3>
-              {hotel.stars > 0 && (
-                <span className="text-yellow-400 text-sm">{'★'.repeat(hotel.stars)}</span>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-amber-500 text-xs font-bold">★{hotel.rating.toFixed(1)}</span>
-              <span className="text-gray-400 text-xs">{hotel.reviewCount.toLocaleString()}件</span>
-            </div>
-            <p className="text-sm text-gray-500 mt-1">{hotel.address}</p>
-            <p className="text-xs text-gray-400 mt-1">
-              🚉 {hotel.nearestStation} ・ 🛏️ {hotel.bedType} ・ {hotel.roomSizeSqm}㎡〜
-            </p>
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {hotel.amenities.map((amenity) => (
-                <span
-                  key={amenity}
-                  className="text-xs bg-gray-50 border border-gray-100 text-gray-500 px-2 py-0.5 rounded-full"
-                >
-                  {amenity}
-                </span>
-              ))}
-            </div>
+      <div className="relative z-10 pointer-events-none flex flex-col sm:flex-row sm:items-center gap-2">
+        {/* Left: name + meta */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <h3 className="font-bold text-gray-800 text-sm leading-tight truncate max-w-[220px] sm:max-w-xs">
+              {hotel.name}
+            </h3>
+            <span className="text-amber-500 text-xs font-bold shrink-0">★{hotel.rating.toFixed(1)}</span>
+            <span className="text-gray-400 text-xs shrink-0">({hotel.reviewCount.toLocaleString()})</span>
           </div>
-
-          {/* Travel options */}
-          <div className="flex flex-col gap-1.5 shrink-0">
+          <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5 flex-wrap">
+            <span className="shrink-0">🚉{hotel.nearestStation}</span>
+            <span className="shrink-0">🛏️{hotel.roomSizeSqm}㎡</span>
             {hotel.transportOptions.map((opt) => (
-              <div
-                key={opt.method}
-                className="flex items-center gap-1.5 bg-violet-50 text-violet-700 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap border border-violet-200"
-              >
-                <span className="text-base">{TRANSPORT_ICON[opt.method]}</span>
-                <span>{TRANSPORT_LABEL[opt.method]}</span>
-                <span className="font-bold text-violet-800">{opt.minutes}分</span>
-                <span className="text-xs text-violet-400">{opt.cost === 0 ? '無料' : formatPrice(opt.cost)}</span>
-              </div>
+              <span key={opt.method} className="shrink-0 text-violet-600 font-medium">
+                {TRANSPORT_ICON[opt.method]}{opt.minutes}分{opt.cost > 0 ? `/${formatPrice(opt.cost)}` : ''}
+              </span>
             ))}
           </div>
         </div>
 
-        {/* Price comparison - 3 column grid */}
-        <div className="grid grid-cols-3 gap-2 pt-4 border-t border-gray-50 pointer-events-auto">
-          {/* Rakuten */}
-          <div
-            className={`rounded-xl p-3 border-2 transition-all ${
-              cheapest === 'rakuten'
-                ? 'border-amber-400 bg-red-50 shadow-sm'
-                : 'border-red-100 bg-red-50/60'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-red-700 tracking-wide">楽天</span>
-              {cheapest === 'rakuten' && (
-                <span className="bg-amber-400 text-amber-900 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                  最安
+        {/* Right: price chips */}
+        <div className="grid grid-cols-3 gap-1.5 pointer-events-auto shrink-0 sm:w-[300px]">
+          {(['rakuten', 'jalan', 'agoda'] as const).map((ota) => {
+            const price = hotel.dummyPrices[ota];
+            const config = OTA_CONFIG[ota];
+            const isCheapest = cheapest === ota && price !== null;
+            return (
+              <a
+                key={ota}
+                href={urls[ota]}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex flex-col items-center justify-center rounded-lg px-1 py-1.5 leading-tight transition-all ${
+                  isCheapest ? config.cheapStyle : config.plainStyle
+                }`}
+              >
+                <span className="text-[10px] font-bold opacity-80">{config.label}</span>
+                <span className="text-xs font-extrabold tabular-nums">
+                  {price !== null ? formatPrice(price) : '-'}
                 </span>
-              )}
-            </div>
-            {hotel.dummyPrices.rakuten !== null ? (
-              <>
-                <p className="text-lg font-extrabold text-gray-800 tabular-nums leading-none">
-                  {formatPrice(hotel.dummyPrices.rakuten)}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">/泊</p>
-              </>
-            ) : (
-              <p className="text-sm text-gray-400">-</p>
-            )}
-            <a
-              href={rakutenUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 block w-full text-center bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1.5 rounded-lg transition-colors"
-            >
-              楽天で予約 →
-            </a>
-          </div>
-
-          {/* Jalan */}
-          <div
-            className={`rounded-xl p-3 border-2 transition-all ${
-              cheapest === 'jalan'
-                ? 'border-amber-400 bg-orange-50 shadow-sm'
-                : 'border-orange-100 bg-orange-50/60'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-orange-700 tracking-wide">じゃらん</span>
-              {cheapest === 'jalan' && (
-                <span className="bg-amber-400 text-amber-900 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                  最安
-                </span>
-              )}
-            </div>
-            {hotel.dummyPrices.jalan !== null ? (
-              <>
-                <p className="text-lg font-extrabold text-gray-800 tabular-nums leading-none">
-                  {formatPrice(hotel.dummyPrices.jalan)}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">/泊</p>
-              </>
-            ) : (
-              <p className="text-sm text-gray-400">-</p>
-            )}
-            <a
-              href={jalanUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 block w-full text-center bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-1.5 rounded-lg transition-colors"
-            >
-              じゃらんで予約 →
-            </a>
-          </div>
-
-          {/* Agoda */}
-          <div
-            className={`rounded-xl p-3 border-2 transition-all ${
-              cheapest === 'agoda'
-                ? 'border-amber-400 bg-[#EBF1FF] shadow-sm'
-                : 'border-blue-100 bg-[#EBF1FF]'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-[#5392F9] tracking-wide">agoda</span>
-              {cheapest === 'agoda' && (
-                <span className="bg-amber-400 text-amber-900 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                  最安
-                </span>
-              )}
-            </div>
-            {hotel.dummyPrices.agoda !== null ? (
-              <>
-                <p className="text-lg font-extrabold text-gray-800 tabular-nums leading-none">
-                  {formatPrice(hotel.dummyPrices.agoda)}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">/泊</p>
-              </>
-            ) : (
-              <p className="text-sm text-gray-400">-</p>
-            )}
-            <a
-              href={agodaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 block w-full text-center bg-[#5392F9] hover:bg-[#3B73E0] text-white text-xs font-bold py-1.5 rounded-lg transition-colors"
-            >
-              agodaで予約 →
-            </a>
-          </div>
+              </a>
+            );
+          })}
         </div>
-
-        {showDiff && (
-          <div className="mt-3 flex justify-center">
-            <span className="inline-block bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1 rounded-full">
-              他サイトより最大{formatPrice(diff)} お得
-            </span>
-          </div>
-        )}
-
-        {nights > 1 && (
-          <p className="text-center text-xs text-gray-400 mt-2">
-            {nights}泊合計: {formatPrice(minPrice(hotel.dummyPrices) * nights)}〜
-          </p>
-        )}
       </div>
+
+      {nights > 1 && (
+        <p className="relative z-10 text-right text-[11px] text-gray-400 mt-1 sm:hidden">
+          {nights}泊合計: {formatPrice(minPrice(hotel.dummyPrices) * nights)}〜
+        </p>
+      )}
     </div>
   );
 }
