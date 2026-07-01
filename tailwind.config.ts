@@ -7,7 +7,11 @@ const config: Config = {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        agoda: { DEFAULT: '#5392F9', dark: '#3B73E0', light: '#EBF1FF' },
+      },
+    },
   },
   plugins: [],
 };

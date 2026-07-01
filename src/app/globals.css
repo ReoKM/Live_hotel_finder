@@ -47,3 +47,6 @@
     transform: translateY(0);
   }
 }
+
+/* 等幅数字（価格比較の縦揃え） */
+.tabular-nums { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }

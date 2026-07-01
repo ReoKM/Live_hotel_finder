@@ -6,8 +6,8 @@ import 'react-day-picker/dist/style.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Live Hotel Finder | ライブ会場周辺のホテル価格比較',
-  description: 'ライブや遠征の宿泊先を、会場からの移動時間と楽天トラベル・じゃらんの価格で一括比較',
+  title: 'ライブ・フェス会場近くのホテルを比較 | Live Hotel Finder',
+  description: '楽天トラベル・じゃらん・agodaの料金を一画面で比較。ライブ遠征のホテル探しを時短。',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

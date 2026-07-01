@@ -1,29 +1,21 @@
-import { Hotel } from '@/types';
+'use client';
+
+import Link from 'next/link';
+import { Hotel, HotelPrices } from '@/types';
 
 interface Props {
   hotel: Hotel;
   nights: number;
+  venueId: string;
+  dateQuery: string;
 }
 
 const TRANSPORT_ICON: Record<string, string> = {
   walk: '🚶',
   train: '🚃',
+  bus: '🚌',
+  taxi: '🚕',
 };
-
-const TRANSPORT_LABEL: Record<string, string> = {
-  walk: '徒歩',
-  train: '電車',
-};
-
-function StarRating({ count }: { count: number }) {
-  const validCount = Math.max(0, Math.min(5, Math.floor(count)));
-  return (
-    <span className="text-yellow-400 text-sm">
-      {'★'.repeat(validCount)}
-      <span className="text-gray-200">{'★'.repeat(5 - validCount)}</span>
-    </span>
-  );
-}
 
 function formatPrice(price: number): string {
   return new Intl.NumberFormat('ja-JP', {
@@ -33,124 +25,91 @@ function formatPrice(price: number): string {
   }).format(price);
 }
 
-export default function HotelCard({ hotel, nights }: Props) {
-  const rakutenUrl = `https://travel.rakuten.co.jp/HOTEL/${hotel.rakutenId}/`;
-  const jalanUrl = `https://www.jalan.net/yad${hotel.jalanId}/`;
+function minPrice(p: HotelPrices): number {
+  const values = [p.rakuten, p.jalan, p.agoda].filter((x): x is number => x !== null);
+  return values.length > 0 ? Math.min(...values) : 0;
+}
 
-  const rakutenCheaper = hotel.dummyPrices.rakuten < hotel.dummyPrices.jalan;
-  const jalanCheaper = hotel.dummyPrices.jalan < hotel.dummyPrices.rakuten;
-  const totalRakuten = hotel.dummyPrices.rakuten * nights;
-  const totalJalan = hotel.dummyPrices.jalan * nights;
+function cheapestOta(p: HotelPrices): 'rakuten' | 'jalan' | 'agoda' {
+  const min = minPrice(p);
+  if (p.rakuten === min) return 'rakuten';
+  if (p.jalan === min) return 'jalan';
+  return 'agoda';
+}
+
+const OTA_CONFIG = {
+  rakuten: { label: '楽天', cheapStyle: 'bg-amber-400 text-amber-900', plainStyle: 'bg-red-50 text-red-700 border border-red-100' },
+  jalan: { label: 'じゃらん', cheapStyle: 'bg-amber-400 text-amber-900', plainStyle: 'bg-orange-50 text-orange-700 border border-orange-100' },
+  agoda: { label: 'agoda', cheapStyle: 'bg-amber-400 text-amber-900', plainStyle: 'bg-[#EBF1FF] text-[#5392F9] border border-[#c5d8ff]' },
+} as const;
+
+export default function HotelCard({ hotel, nights, venueId, dateQuery }: Props) {
+  const urls = {
+    rakuten: `https://travel.rakuten.co.jp/HOTEL/${hotel.rakutenId}/`,
+    jalan: `https://www.jalan.net/yad${hotel.jalanId}/`,
+    agoda: `https://www.agoda.com/hotel/${hotel.agodaId}/`,
+  } as const;
+
+  const cheapest = cheapestOta(hotel.dummyPrices);
+  const detailHref = `/venues/${venueId}/hotels/${hotel.id}${dateQuery}`;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200 overflow-hidden">
-      <div className="p-5 sm:p-6">
-        {/* Hotel header */}
-        <div className="flex flex-wrap justify-between items-start gap-3 mb-4">
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-800 truncate">{hotel.name}</h3>
-            <div className="flex items-center gap-2 mt-0.5">
-              <StarRating count={hotel.stars} />
-              <span className="text-xs text-gray-400">{hotel.stars}つ星</span>
-            </div>
-            <p className="text-sm text-gray-500 mt-1">{hotel.address}</p>
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {hotel.amenities.map((amenity) => (
-                <span
-                  key={amenity}
-                  className="text-xs bg-gray-50 border border-gray-100 text-gray-500 px-2 py-0.5 rounded-full"
-                >
-                  {amenity}
-                </span>
-              ))}
-            </div>
-          </div>
+    <div className="relative border-b border-gray-100 px-3 py-2.5 hover:bg-violet-50/40 transition-colors">
+      {/* Cover link — enables Ctrl/Cmd+click and right-click "open in new tab" */}
+      <Link href={detailHref} className="absolute inset-0 z-0" aria-label={hotel.name} />
 
-          {/* Travel time badge */}
-          <div className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap border border-indigo-100 shrink-0">
-            <span className="text-base">{TRANSPORT_ICON[hotel.transport]}</span>
-            <span>{TRANSPORT_LABEL[hotel.transport]}</span>
-            <span className="font-bold text-indigo-800">{hotel.travelTimeMinutes}分</span>
+      <div className="relative z-10 pointer-events-none flex flex-col sm:flex-row sm:items-center gap-2">
+        {/* Left: name + meta */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <h3 className="font-bold text-gray-800 text-sm leading-tight truncate max-w-[220px] sm:max-w-xs">
+              {hotel.name}
+            </h3>
+            <span className="text-amber-500 text-xs font-bold shrink-0">★{hotel.rating.toFixed(1)}</span>
+            <span className="text-gray-400 text-xs shrink-0">({hotel.reviewCount.toLocaleString()})</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5 flex-wrap">
+            <span className="shrink-0">🚉{hotel.nearestStation}</span>
+            <span className="shrink-0">🛏️{hotel.roomSizeSqm}㎡</span>
+            {hotel.transportOptions.map((opt) => (
+              <span key={opt.method} className="shrink-0 text-violet-600 font-medium">
+                {TRANSPORT_ICON[opt.method]}{opt.minutes}分{opt.cost > 0 ? `/${formatPrice(opt.cost)}` : ''}
+              </span>
+            ))}
           </div>
         </div>
 
-        {/* Price comparison */}
-        <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-50">
-          {/* Rakuten Travel */}
-          <div
-            className={`rounded-xl p-4 border-2 transition-all ${
-              rakutenCheaper
-                ? 'border-red-400 bg-red-50 shadow-sm'
-                : 'border-red-100 bg-red-50/60'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 bg-red-600 rounded-full" />
-                <span className="text-xs font-bold text-red-700 tracking-wide">楽天トラベル</span>
-              </div>
-              {rakutenCheaper && (
-                <span className="text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold animate-pulse">
-                  最安値
+        {/* Right: price chips */}
+        <div className="grid grid-cols-3 gap-1.5 pointer-events-auto shrink-0 sm:w-[300px]">
+          {(['rakuten', 'jalan', 'agoda'] as const).map((ota) => {
+            const price = hotel.dummyPrices[ota];
+            const config = OTA_CONFIG[ota];
+            const isCheapest = cheapest === ota && price !== null;
+            return (
+              <a
+                key={ota}
+                href={urls[ota]}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex flex-col items-center justify-center rounded-lg px-1 py-1.5 leading-tight transition-all ${
+                  isCheapest ? config.cheapStyle : config.plainStyle
+                }`}
+              >
+                <span className="text-[10px] font-bold opacity-80">{config.label}</span>
+                <span className="text-xs font-extrabold tabular-nums">
+                  {price !== null ? formatPrice(price) : '-'}
                 </span>
-              )}
-            </div>
-            <p className="text-2xl font-extrabold text-gray-800 leading-none">
-              {formatPrice(hotel.dummyPrices.rakuten)}
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              /泊{nights > 1 ? ` × ${nights}泊 = ${formatPrice(totalRakuten)}` : ''}
-            </p>
-            <a
-              href={rakutenUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 block w-full text-center bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-bold py-2 rounded-lg transition-colors"
-            >
-              楽天トラベルで予約
-            </a>
-          </div>
-
-          {/* Jalan */}
-          <div
-            className={`rounded-xl p-4 border-2 transition-all ${
-              jalanCheaper
-                ? 'border-orange-400 bg-orange-50 shadow-sm'
-                : 'border-orange-100 bg-orange-50/60'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 bg-orange-500 rounded-full" />
-                <span className="text-xs font-bold text-orange-700 tracking-wide">じゃらん</span>
-              </div>
-              {jalanCheaper && (
-                <span className="text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded-full font-bold animate-pulse">
-                  最安値
-                </span>
-              )}
-            </div>
-            <p className="text-2xl font-extrabold text-gray-800 leading-none">
-              {formatPrice(hotel.dummyPrices.jalan)}
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              /泊{nights > 1 ? ` × ${nights}泊 = ${formatPrice(totalJalan)}` : ''}
-            </p>
-            <a
-              href={jalanUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 block w-full text-center bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white text-xs font-bold py-2 rounded-lg transition-colors"
-            >
-              じゃらんで予約
-            </a>
-          </div>
+              </a>
+            );
+          })}
         </div>
-
-        <p className="text-center text-xs text-gray-300 mt-3">
-          ※ 表示価格はダミーデータです。実際の価格はサイトでご確認ください。
-        </p>
       </div>
+
+      {nights > 1 && (
+        <p className="relative z-10 text-right text-[11px] text-gray-400 mt-1 sm:hidden">
+          {nights}泊合計: {formatPrice(minPrice(hotel.dummyPrices) * nights)}〜
+        </p>
+      )}
     </div>
   );
 }
