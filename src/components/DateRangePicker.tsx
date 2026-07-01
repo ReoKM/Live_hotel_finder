@@ -8,10 +8,11 @@ import { format, differenceInCalendarDays } from 'date-fns';
 
 interface Props {
   onRangeChange: (range: DateRange | undefined) => void;
+  initialRange?: DateRange;
 }
 
-export default function DateRangePicker({ onRangeChange }: Props) {
-  const [range, setRange] = useState<DateRange | undefined>();
+export default function DateRangePicker({ onRangeChange, initialRange }: Props) {
+  const [range, setRange] = useState<DateRange | undefined>(initialRange);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 

@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { differenceInCalendarDays, parseISO } from 'date-fns';
+import { differenceInCalendarDays, parseISO, format } from 'date-fns';
+import type { DateRange } from 'react-day-picker';
 import Header from '@/components/Header';
 import HotelCard from '@/components/HotelCard';
+import DateRangePicker from '@/components/DateRangePicker';
 import { VenueData, TravelTimeFilterValue, SortKey, HotelPrices } from '@/types';
 
 interface Props {
@@ -33,6 +35,7 @@ const SORT_OPTIONS: { label: string; value: SortKey }[] = [
 ];
 
 function HotelListInner({ venueData }: Props) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const checkin = searchParams.get('checkin') ?? '';
   const checkout = searchParams.get('checkout') ?? '';
@@ -45,6 +48,25 @@ function HotelListInner({ venueData }: Props) {
       return 1;
     }
   }, [checkin, checkout]);
+
+  // Parse current URL dates as initial picker value (computed once on mount)
+  const initialDateRange = useMemo<DateRange | undefined>(() => {
+    if (!checkin || !checkout) return undefined;
+    try {
+      return { from: parseISO(checkin), to: parseISO(checkout) };
+    } catch {
+      return undefined;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleDateChange = (range: DateRange | undefined) => {
+    const p = new URLSearchParams();
+    if (range?.from) p.set('checkin', format(range.from, 'yyyy-MM-dd'));
+    if (range?.to) p.set('checkout', format(range.to, 'yyyy-MM-dd'));
+    const q = p.toString();
+    router.replace(`/venues/${venueData.venue.id}${q ? `?${q}` : ''}`);
+  };
 
   const [filter, setFilter] = useState<TravelTimeFilterValue>(null);
   const [sort, setSort] = useState<SortKey>('price_asc');
@@ -110,12 +132,22 @@ function HotelListInner({ venueData }: Props) {
             <span className="text-white text-xs font-medium">{venue.name}</span>
           </div>
           <h2 className="text-white text-2xl sm:text-3xl font-extrabold">{venue.name}周辺のホテル</h2>
-          <p className="text-violet-300 text-sm mt-1">{venue.address}</p>
-          {checkin && checkout && (
-            <span className="inline-block mt-2 text-xs text-violet-100 bg-violet-800/60 px-2 py-0.5 rounded-full">
-              {nights}泊
-            </span>
-          )}
+          <p className="text-violet-300 text-sm mt-1 mb-3">{venue.address}</p>
+
+          {/* Date picker */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <DateRangePicker onRangeChange={handleDateChange} initialRange={initialDateRange} />
+            {checkin && checkout && (
+              <span className="text-xs text-violet-200 bg-violet-800/60 px-2 py-1 rounded-full shrink-0">
+                {nights}泊
+              </span>
+            )}
+            {!checkin && (
+              <span className="text-xs text-violet-400">
+                ← 日程を選ぶと宿泊合計を表示
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
