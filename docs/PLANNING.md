@@ -40,7 +40,7 @@ Phase 0│準備
        │ □ Xリスニングの検索クエリ確定 ✅
        ▼
 Phase 1│発見調査（1〜2週目）
-       │ □ デスクリサーチ（市場規模・競合・ペインの生の声）→ docs/research/desk-research.md
+       │ ☑ デスクリサーチ（市場規模・競合・ペインの生の声）→ docs/research/desk-research.md
        │ □ 競合(じゃらん/Googleマップ/トリバゴ)で自己予約体験 → 不満点記録
        │ □ 遠征経験者5人インタビュー + プレビュー操作観察 ← 【人間が実施】
        ▼
@@ -88,7 +88,7 @@ Phase 4│公開検証（6週目〜）
 
 | ファイル | 内容 | 状態 |
 |---|---|---|
-| `docs/research/desk-research.md` | デスクリサーチ結果（市場・ペイン・競合・終演後問題） | 実施中（本PRで追加） |
+| `docs/research/desk-research.md` | デスクリサーチ結果（市場・ペイン・競合・終演後問題） | 完了 |
 | `docs/research/interview-guide.md` | 遠征経験者インタビュー台本（Mom Test方式） | 実施待ち |
 | `docs/research/x-listening-queries.md` | Xソーシャルリスニング検索クエリ集 | 継続実施用 |
 | `docs/research/survey-draft.md` | 定量アンケート票 n=50想定 | GATE 1通過後に配布 |
